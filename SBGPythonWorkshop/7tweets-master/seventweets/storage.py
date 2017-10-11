@@ -4,8 +4,11 @@ Module that contains simple in memory storage implementation
 
 
 class Storage(object):
-    _tweets = {1: 'baba'}
-    _counter = 1
+    _tweets = [{
+                'id': 1,
+                'name' : 'mladen',
+                'tweet' : 'baba'}
+               ]
 
     @classmethod
     def get_tweets(cls):
@@ -13,13 +16,20 @@ class Storage(object):
 
     @classmethod
     def get_tweet(cls, tweet_id):
-        return cls._tweets.get(tweet_id, None)
+        try:
+            return cls._tweets[tweet_id]
+        except:
+            return None
 
     @classmethod
     def post_tweet(cls, tweet):
-        cls._counter += 1
-        cls._tweets[cls._counter] = tweet
+        cls._tweets.append(tweet)
 
     @classmethod
     def del_tweet(cls, tweet_id):
-        return cls._tweets.pop(tweet_id, None)
+        try:
+            del cls._tweets[tweet_id]
+            return 'Deleted'
+        except:
+            return None
+

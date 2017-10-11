@@ -3,6 +3,7 @@ Module contains Flask application and routes
 """
 from flask import Flask, jsonify, request
 from storage import Storage
+import json
 
 app = Flask(__name__)
 
@@ -15,12 +16,12 @@ def get_tweets():
 @app.route("/tweets/<int:tweet_id>", methods=['GET'])
 def get_tweet(tweet_id):
     tweet = Storage.get_tweet(tweet_id)
-    return [tweet_id, jsonify(tweet)], 200 if tweet else 404
+    return jsonify(tweet), 200 if tweet else 404
 
 
 @app.route("/tweets/", methods=['POST'])
 def post_tweet():
-    tweet = str(request.data)
+    tweet = json.loads(request.data)
     Storage.post_tweet(tweet)
     return jsonify(tweet), 201
 
