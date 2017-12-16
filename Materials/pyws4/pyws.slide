@@ -1,0 +1,638 @@
+Python radionica #4
+Infrastruktura i administracija servisa
+10 Apr 2017
+
+Janoš Guljaš
+Seven Bridges Genomics
+janos.guljas@sbgenomics.com
+@janosguljas
+
+
+* Infrastruktura i administracija servisa
+
+Dizajniranje, razvoj i rad servisa uključuju interakciju sa različitim ljudima i računarskim sistemima.
+
+Često se pri razvoju zanemaruju neke od interakcija što dovodi do problema koji koče dalji razvoj ili otežavaju rad.
+
+Podteme:
+
+- Korisnici servisa
+- Zavisnosti servisa
+- Pakovanje i distribucija
+- Automatizacija testiranja
+
+
+* Korisnici servisa/proizvoda
+
+Svi ljudi koji interaguju sa proizvodom na bilo koji način.
+
+- Krajnji korisnici proizvoda
+- QA inženjeri
+- Mainteiner-i paketa
+- Operations inženjeri
+- Programeri u timu
+- Nepoznati programeri
+- Drugi servisi
+
+: korisnici proizvoda: produkt menadžeri, poslodavci i naručioci posla
+: mainteiner-i paketa i operations inženjeri su uglavnom iste osobe
+: nepoznati programeri su ili budući programeri u firmi ili open source zajednica
+: drugi servisi se povezuju preko API-a
+
+
+* Zavisnosti servisa
+
+Vaš servis ima potrebu za:
+
+- hardverom 
+- softverom
+- drugim servisima (baze podataka, servisi koji imaju API)
+
+Softver uključuje:
+
+- druge programe (Python interpreter)
+- podatke (sadržaj baza podataka)
+- konfiguracije
+
+
+* Okruženja
+
+Jedan ili više servera na kojima se izvršava aplikacija.
+
+Zavisnosti mogu biti različite u različitim stadijumima razvoja i rada:
+
+- na lokalnom računaru
+- na serverima za kompajliranje i pakovanje
+- u okruženju za testiranje
+- u produkcionim okruženjima
+
+Potrebno je uskladiti rad u različitim okruženjima i omogućiti što lakšu instalaciju, konfigurisanje, održavanje i ažuriranje aplikacije.
+
+: lokalni računar obuhvata i raznolike računare drugih programera
+: produkciona okruženja mogu biti i računari korisnika open source projekta
+
+
+* Pakovanje i distribucija
+
+
+* Pakovanje i distribucija
+
+Svaki sistem definiše svoje konvencije i kreira svoje alate koji omogućavaju objavljivanje softvera i _olakšavaju_ korišćenje.
+
+- sistemski paketi (deb, pkg, msi)
+- alati programskog jezika (pip, npm, gem)
+
+Python ima bogat spektar vrlo korisnih alata za pakovanje python modula, bilo da su biblioteke i aplikacije. Takodje, pip pruža razrešavanje zavisnosti i instaliranje i kompajliranje svih modula koje koristi vaša biblioteka ili aplikacija.
+
+Problemi:
+
+- kompatibilnost sa različitim verzijama python interpretera
+- kompatibilnost izmedju različitih platformi (macOS, linux, windows)
+- (ne)dostupnost C/C++ biblioteka
+- nekonzistentnost u razrešavanju zavisnosti
+
+
+* Python virtualenv
+
+Pruža vrlo dobar način izolacije python paketa koji su zavisnosti aplikacije.
+
+Međutim postoje problemi:
+
+- python interpreter i dalje treba da postoji na sistemu
+- kreiranje virtualenv-a se obično vrši na host serveru i zahteva instaliranje C/C++ dev bibilioteka
+- pakovanje virtualenv-a u poseban paket zahteva dodatno referenciranje potrebnih C/C++ biblioteka koje moraju biti instalirane na host sistemu
+- ažuriranjem neke C/C++ biblioteke na verziju koja nije binarno kompatibilna sa onom kojom je kreiran virtualenv zahteva reinstalaciju
+- virtualenv se teško premešta sa jedne lokacije na fajl sistemu na drugu
+
+
+* Linux kontejneri
+
+Izolacija i kontrola resursa Linux procesa na osnovu kernel _namespace_ i _cgroups_ funkcionalnosti.
+
+Linux kontejner je izolovan proces ili grupa procesa. Procesi su potpuno vidljivi sa host sistema, ali imaju različite proces ID vrednosti u odnosu na kontejner, nemaju pristup host fajl sistemu, već samo izolovanim dalovima fajl sistema, nemaju pristup svim network interfejsima, već samo određenim virtuelnim.
+
+Razlike od koncepta virtualizacije:
+
+- ne zahteva hypervisor
+- procesi su izolovani na nivou kernela, ne mogu da se izvrsavaju procesi drugih operativnih sistema ili arhitektura
+- nije potrebno instaliranje posebnog operativnog sistema u okviru koga bi se proces izvršavao
+- mnogo manji _overhead_ izvršavanja
+
+
+* Prednosti izolacije
+
+Kontejneri omogućavaju da na istom host serveru rade aplikacije koje zahtevaju različite verzije softvera koji im je potreban za rad. Izbegavaju se konflikti između aplikacija, ali i timova.
+
+Host server može da bude vrlo _tanak_, što olakšava održavanje servera.
+
+Moguće je pokrenuti više instanci servisa, u istoj ili različitim verzijama, na istom host serveru, bez obzira kako su ti servisi napisani.
+
+
+* Docker
+
+
+* Docker
+
+Alat za kontrolu Linux kontejnera.
+
+CLI program _docker_ komunicira sa lokalnim servisom _dockerd_ putem HTTP API-a.
+
+Moguće je koristiti docker API i praviti svoje alate i servise koji rade sa kontejnerima. Primer takvog alata je Kubernetes.
+
+Proćićemo kroz koncepte:
+
+- containers
+- images
+- volumes
+- networks
+
+
+* Instalacija
+
+Ubuntu Linux
+
+.link https://docs.docker.com/engine/installation/linux/ubuntu/#install-docker
+
+Docker for Mac
+
+.link https://docs.docker.com/docker-for-mac/install
+
+Docker for Windows
+
+.link https://docs.docker.com/docker-for-windows/install
+
+
+* Docker images
+
+Arhiva fajlsistema koji ce biti dostupan kontejneru kada se startuje.
+
+Uključuje i podrazumevane parametre za pokretanje kontejnera.
+
+
+*Distribucija*
+
+Javno dostupni image-i nalaze se na:
+
+.link https://hub.docker.com
+
+Za čuvanje privatnih image-a koristi se Docker registry:
+
+.link https://docs.docker.com/registry
+
+
+* Pokretanje kontejnera
+
+Komanda:
+
+    docker run [OPTIONS] IMAGE[:TAG|@DIGEST] [COMMAND] [ARG...]
+
+.play -edit docker-run.sh /START OMIT/,/END OMIT/ 
+
+Lista kontejnera:
+
+.play -edit docker-ps.sh /START OMIT/,/END OMIT/ 
+
+Pokretanje interaktivnog shell-a unutar kontejnera:
+
+    docker run --rm -ti debian bash
+
+
+* run = create + start
+
+Docker `run` komanda je kombinacija druge dve komande `create` i `start`.
+
+`create` kreira novi kontejner od image-a sa parametrima koji se prosledjuju `run` komandi, a `start` pokrece kontejner, tj. proces koji je definisan da se izvrsi unutar kontejnera.
+
+Kontejner može da izvrši proces i stopira se, ali i dalje postoji.
+
+Kontejner može da ima dugoživeći proces, na primer web server, koji radi u pozadini i mora prvo da se stopira da bi se uklonio.
+
+Ne postoji komanda koja je pokreće `stop` i `rm` kontejnera. Da bi se kontejner potpuno uklonio, nakon `run`-a, potrebno ga je stopirati `stop` i izbrisati `rm`.
+
+Docker `rm` `-f` nema isto ponašanje kao sukcesivno pozivanje `stop` i `rm`.
+
+
+* Docker volumes
+
+Način za prosleđivanje podataka sa host sistema kontejneru.
+
+Analogno _mount_-ovanju diska na neku putanju operativnog sistema.
+
+.play -edit docker-volume.sh /START OMIT/,/END OMIT/ 
+
+Lista postojećih volume-a.
+
+.play -edit docker-volume-ls.sh /START OMIT/,/END OMIT/ 
+
+Kreiranje volume-a umesto korišćenje putanja.
+
+.play -edit docker-volume-create.sh /START OMIT/,/END OMIT/ 
+
+
+* Docker mreže
+
+Mehanizam povezivanja kontejnera putem IP mreza.
+
+Lista postojećih mreža
+
+.play -edit docker-network-ls.sh /START OMIT/,/END OMIT/ 
+
+Kreiranje mreže
+
+.play -edit docker-network-create.sh /START OMIT/,/END OMIT/ 
+
+
+* PostgreSQL server u kontejneru
+
+Startovanje servisa u pozadini unutar kontejnera
+
+.play -edit postgresql.sh /START OMIT/,/END OMIT/ 
+
+Zvaničan image:
+
+.link https://hub.docker.com/_/postgres
+
+.play -edit docker-ping-container.sh /START OMIT/,/END OMIT/ 
+
+
+* Docker run opcije
+
+`--name` `NAME` - davanje posebnog naziva kontejneru
+`--rm` - uklanjanje kontejnera nakon sto procesi u njemu završe izvršavanje
+`-d` - pokretanje kontejnera u pozadini
+`-t` - otvaranje pseudo terminala ka kontejneru
+`-i` - otvaranje STDIN I/O stream-a ka kontejneru
+`-e` `KEY=VALUE` - definisanje environment varijable unutar kontejnera
+`--net` `NET` - pokretanje kontejnera unutar željene docker mreže
+`-v` `HOSTPATH:CONTAINERPATH[:OPTIONS]` - mount-ovanje volume-a
+`-p` `[HOSTIP:]HOSTPORT:CONTAINERPORT` - proxiranje saobraćaja
+`--restart` `[no|always|unless-stopped|on-failure]` - restart polisa 
+
+.link https://docs.docker.com/engine/reference/run
+
+* Pristupanje PostgreSQL serveru u kontejneru
+
+Komanda `docker` `exec` izvršava proces unutar aktivnog kontejnera. Ne pokreće novi, kao `run`.
+
+Konektovanje na bazu
+    
+    docker exec -ti radionica-postgres psql -U radionica
+
+Importovanje SQL podataka
+    
+    docker exec -i radionica-postgres psql -U radionica < radionica.sql
+
+Eksporotovanje SQL podataka
+
+    docker exec -i radionica-postgres pg_dump -U radionica > radionica_dump.sql
+
+
+* Kreiranje image-a
+
+Dva načina
+
+- docker commit CONTAINER REPOSITORY[:TAG]
+- docker build -t REPOSITORY[:TAG] PATH
+
+Komanda docker build zahteva `Dockerfile` čime se omogućava reproducibilnost kreiranja image-a.
+
+
+* SSH klijent u kontejneru
+
+Korišćenje SSH klijenta pod Windows operativnim sistemom.
+
+Primer kreiranja image-a koristeći commit komandu.
+
+    docker run --name sshclient debian bash -c "apt-get update && apt-get install -y openssh-client"
+
+    docker commit sshclient janos/ssh
+
+    docker run --rm -ti janos/ssh ssh -o "StrictHostKeyChecking no" root@server.sedamcvrkuta.com
+
+
+* Primer jednostavne python aplikacije
+
+primer1/app.py
+
+.code primer1/app.py
+
+
+* Primer jednostavne python aplikacije
+
+primer1/requirements.txt
+
+.code primer1/requirements.txt
+
+primer1/Dockerfile
+
+.code primer1/Dockerfile
+
+
+* Primer jednostavne python aplikacije
+
+Kreiranje image-a
+
+.play -edit primer1/build-image.sh /START OMIT/,/END OMIT/ 
+
+Pokretanje kontejnera
+
+.play -edit primer1/run-container.sh /START OMIT/,/END OMIT/ 
+
+.link http://localhost:5000
+
+Stopiranje kontejnera
+
+.play -edit primer1/stop-container.sh /START OMIT/,/END OMIT/ 
+
+
+* Primer gunicorn python aplikacije
+
+primer2/app.py je istog sadržaja kao i u prethodnom primeru.
+
+primer2/requirements.txt
+
+.code primer2/requirements.txt
+
+primer2/Dockerfile
+
+.code primer2/Dockerfile
+
+
+* Primer gunicorn python aplikacije
+
+Kreiranje image-a
+
+.play -edit primer2/build-image.sh /START OMIT/,/END OMIT/ 
+
+Pokretanje kontejnera
+
+.play -edit primer2/run-container.sh /START OMIT/,/END OMIT/ 
+
+.link http://localhost:8000
+
+Stopiranje kontejnera
+
+.play -edit primer2/stop-container.sh /START OMIT/,/END OMIT/ 
+
+
+* Nginx u kontejneru
+
+- proxy štiti python wsgi server od malicioznih upita
+- može da terminira SSL konekcije
+
+.code primer2/primer2.conf
+
+.play -edit primer2/run-nginx.sh /START OMIT/,/END OMIT/ 
+
+.link http://localhost:9000
+
+
+* Instaliranje sistemskih paketa
+
+Neki python moduli zahtevaju C/C++ biblioteke da bi se instalirali.
+
+Takođe, SSL CA sertifikati su potrebni ako HTTP klijenti komuniciraju preko enkriptovanog HTTPS protokola.
+
+.code Dockerfile-with-apt
+
+
+* Docker image push
+
+Upload docker image-a na javni ili privatni registry.
+
+Javan registry:
+
+.link https://hub.docker.com
+
+Nakon registracije, potrebno je prijaviti se:
+
+    $ docker login
+    Username (janos):
+    Password:
+
+Push image-a:
+
+.play -edit docker-push.sh /START OMIT/,/END OMIT/ 
+
+
+* Konfigurisanje aplikacije u kontejneru
+
+- environment varijablama
+
+Komanda docker run moze da prihvati visestruke `-e` parametre:
+
+    docker run -e SEVENTWEETS_DB_HOST=pghostname -e SEVENTWEETS_DB_USERNAME=seventweets ...
+
+- mount-ovanjem volume-a sa konfiguracionim fajlovima
+
+Konfiguracije mogu da se čuvaju na host fajlsistemu i da se proslede kontejenru:
+
+    docker run -v /srv/config/seventweets:/config:ro ...
+
+- trećim servisom (consul, etcd...)
+
+
+* Kontejner log i diff 
+
+    docker logs CONTAINER
+
+Lista log poruke postojećeg kontejnera.
+
+.play -edit docker-logs.sh /START OMIT/,/END OMIT/ 
+
+
+    docker diff CONTAINER
+
+Lista izmenjene fajlove u kontejneru u odnosu na image.
+
+.play -edit docker-diff.sh /START OMIT/,/END OMIT/ 
+
+
+* fabric
+
+
+* fabric
+
+    pip install fabric3
+
+Automatizacija izvršavanja komandi preko SSH ili na lokalnom računaru.
+
+Python biblioteka `fabric` i CLI komanda `fab`.
+
+Svi taskovi se definišu u `fabfile.py` fajlu koji `fab` komanda učitava i izvršava.
+
+.link http://www.fabfile.org
+
+Vrlo dobre alternative:
+
+- ansible
+.link https://www.ansible.com
+
+- salt stack
+.link https://saltstack.com/community
+
+
+* fabric
+
+fabfile.py
+
+    from fabric.api import run
+
+    def serve():
+        run("docker run -d -v /usr/share/doc:/doc -w /doc -p 8000:8000 python python -m http.server")
+
+Izvršavanje taska:
+
+    fab -H server.sedamsvrkuta.com serve
+
+
+* fabric.api.run i fabric.api.local
+
+Dve funkcije kojima se izvršavaju komande.
+
+Funkcija `run("komanda")` izvršava komandu preko SSH protokola.
+
+Funkcija `local("komanda")` izvršava komandu u lokalnom terminalu.
+
+    from fabric.api import run, local
+
+    def uname_local():
+        local("uname -a")
+
+    def uname_remote():
+        run("uname -a")
+
+
+* fabric.api.env
+
+Dictionary koji sadrži razne informacije vezane za izvršavanje taskova.
+
+Najbitnije vrednosti su lista servera
+
+    fabric.api.env.hosts = ['moj-server.com']
+
+SSH korisnik
+
+    fabric.api.env.user = 'ja'
+
+oznaka za nastavljanje izvršavanja i nakon greške
+
+    fabric.api.env.warn_only = False
+
+
+* fabric.api.settings
+
+Moguće je dodeliti vrednost nekoj varijabli u samo određenom delu koda na sledeći način:
+
+    from fabric.api import run, settings
+
+    def start():
+        with settings(warn_only=True):
+            run("false")
+        run("true")
+
+
+* Argumenti taskova
+
+Task funkcija može da sadrži argumente kako bi se prosledili opcioni paramteri pri izvršavanju.
+
+    from fabric.api import run
+
+    def serve(path=""):
+        if path is "":
+            path = "/usr/share/doc"
+        run("docker run -d -v "+path+":/doc' -w /doc -p 8000:8000 python python -m http.server")
+
+Izvršavanje taska sa opcionom putanjom:
+
+    fab -H server.sedamsvrkuta.com serve:/tmp
+
+
+* primer2 fabfile.py
+
+.code primer2/fabfile.py /1 START OMIT/,/1 END OMIT/ 
+
+
+* primer2 fabfile.py
+
+.code primer2/fabfile.py /2 START OMIT/,/2 END OMIT/ 
+
+
+* primer2 fabfile.py
+
+.code primer2/fabfile.py /3 START OMIT/,/3 END OMIT/ 
+
+
+* primer2 fabfile.py
+
+.code primer2/fabfile.py /4 START OMIT/,/4 END OMIT/ 
+
+
+* primer2 fabfile.py
+
+.code primer2/fabfile.py /5 START OMIT/,/5 END OMIT/ 
+
+
+* primer2 fabfile.py
+
+.code primer2/fabfile.py /6 START OMIT/,/6 END OMIT/ 
+
+
+* Travis CI
+
+
+* Travis CI
+
+Automatizovano testiranje i deploy projekata hostovanih na GitHub-u.
+
+.link https://travis-ci.org
+
+Jednostavno povezivanje GitHub naloga i Travis-a.
+
+Besplatno za open source projekte. Sadrži i komercijalnu varijantu za privatne GitHub projekte.
+
+Sistem sa velikim brojem mogućnosti i vrlo dobrom dokumentacijom.
+
+Deklarativan način konfigurisanja izvršavanja testova kroz fajl `.travis.yml` u okviru git repoa.
+
+Testovi se pokrecu nakon svakog commita.
+
+
+* Primer
+
+Fajl .travis.yml
+
+    language: python
+    python:
+        - "3.6"
+    install:
+        - pip install -r requirements.txt
+    script:
+        - pytest
+
+
+* Testiranje sa bazom podataka
+
+
+Fajl .travis.yml
+
+    language: python
+    python:
+        - "3.6"
+    env:
+        - DB_HOST=localhost
+        - DB_PORT=5432
+        - DB_USER=postgres
+        - DB_PASS=
+        - DB_NAME=primer2
+    services:
+        - postgresql
+    before_script:
+        - psql -c 'create database primer2;' -U postgres
+    install:
+        - pip install -r requirements.txt
+    script:
+        - pytest
+
+
+.html styles.html
